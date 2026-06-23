@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تسجيل مشترك جديد - نظام النادي</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+      body {
+        background-color: #f4f6f9;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        padding: 20px;
+      }
+      .register-container {
+        background: white;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        width: 100%;
+        max-width: 450px;
+      }
+      h2 {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #1a2f5e;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        color: #333;
+        font-weight: bold;
+        font-size: 14px;
+      }
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 15px;
+      }
+      .form-group input:focus,
+      .form-group select:focus {
+        border-color: #1a2f5e;
+        outline: none;
+      }
+      .register-btn {
+        width: 100%;
+        padding: 12px;
+        background-color: #2ecc71;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: 0.3s;
+        margin-top: 10px;
+      }
+      .register-btn:hover {
+        background-color: #27ae60;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="register-container">
+      <h2>✨ فتح حساب مشترك جديد</h2>
+      <form onsubmit="event.preventDefault()">
+        <div class="form-group">
+          <label>الاسم الثلاثي للطالب</label>
+          <input
+            type="text"
+            id="regName"
+            placeholder="اكتب اسمك كاملاً"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label>البريد الإلكتروني</label>
+          <input
+            type="email"
+            id="regEmail"
+            placeholder="username@mail.com"
+            style="text-align: left; direction: ltr"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label>نوع الاشتراك المرغوب</label>
+          <select id="regSubscription">
+            <option value="ترم">اشتراك ترم كامل</option>
+            <option value="سنوي كامل">اشتراك سنوي</option>
+            <option value="شهري">اشتراك شهري</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>كلمة السر (6 خانات على الأقل)</label>
+          <input
+            type="password"
+            id="regPassword"
+            placeholder="******"
+            style="text-align: left; direction: ltr"
+            required
+          />
+        </div>
+        <button type="button" class="register-btn" id="registerBtn">
+          إنشاء الحساب والانضمام 🚀
+        </button>
+      </form>
+      <div style="text-align: center; margin-top: 20px; font-size: 14px">
+        لديك حساب بالفعل؟
+        <a
+          href="login.html"
+          style="color: #1a2f5e; text-decoration: none; font-weight: bold"
+          >سجل دخولك من هنا</a
+        >
+      </div>
+    </div>
+
+    <script type="module">
+      import {
+        getAuth,
+        createUserWithEmailAndPassword,
+      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+      import {
+        getFirestore,
+        doc,
+        setDoc,
+      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+      import { auth } from "./js/firebase-config.js";
+
+      const db = getFirestore(auth.app);
+
+      document
+        .getElementById("registerBtn")
+        .addEventListener("click", async () => {
+          const name = document.getElementById("regName").value.trim();
+          const email = document.getElementById("regEmail").value.trim();
+          const subscriptionType =
+            document.getElementById("regSubscription").value;
+          const password = document.getElementById("regPassword").value;
+
+          if (!name || !email || !password) {
+            alert("الرجاء ملء كافة الحقول!");
+            return;
+          }
+
+          try {
+            // 1. إنشاء الحساب في الفايربيس للـ Auth
+            const userCredential = await createUserWithEmailAndPassword(
+              auth,
+              email,
+              password,
+            );
+            const user = userCredential.user;
+
+            // 2. تخزين بيانات الحساب الإضافية في Firestore
+            await setDoc(doc(db, "students", user.uid), {
+              uid: user.uid,
+              name: name,
+              email: email,
+              role: "student",
+              subscriptionType: subscriptionType,
+              status: "نشط",
+              points: 0, // يبدأ بـ 0 نقاط افتراضياً
+              createdAt: new Date(),
+            });
+
+            alert(
+              "تهانينا! تم إنشاء حسابك بنجاح وجاري تحويلك لشاشتك الشخصية 🎉",
+            );
+            window.location.href = "student.html";
+          } catch (error) {
+            alert("فشل إنشاء الحساب: " + error.message);
+          }
+        });
+    </script>
+  </body>
+</html>

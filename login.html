@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تسجيل الدخول - نادي وثبة الشبابي</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        background: linear-gradient(135deg, #1a2f5e 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+        padding: 20px;
+      }
+      .login-card {
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        width: 100%;
+        max-width: 380px;
+        text-align: center;
+      }
+      h2 {
+        color: #1a2f5e;
+        margin-bottom: 5px;
+      }
+      p.welcome {
+        color: #666;
+        margin-bottom: 25px;
+        font-size: 14px;
+      }
+      input {
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-sizing: border-box;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        background: #1a2f5e;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: 0.3s;
+        margin-top: 10px;
+      }
+      button:hover {
+        background: #2c4d96;
+      }
+      .links {
+        margin-top: 20px;
+        font-size: 14px;
+      }
+      .links a {
+        color: #1a2f5e;
+        text-decoration: none;
+        font-weight: bold;
+      }
+      .support-btn {
+        margin-top: 15px;
+        color: #cc0000 !important;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-card">
+      <h2>أهلاً بك في نادي وثبة الشبابي</h2>
+      <p class="welcome">يرجى تسجيل الدخول للوصول إلى لوحة التحكم</p>
+
+      <input type="email" id="email" placeholder="البريد الإلكتروني" />
+      <input type="password" id="password" placeholder="كلمة المرور" />
+      <button id="loginBtn">دخول</button>
+
+      <div class="links">
+        <p>ليس لديك حساب؟ <a href="signup.html">سجل الآن</a></p>
+        <a
+          href="https://wa.me/966XXXXXXXXXX"
+          class="support-btn"
+          target="_blank"
+          >📞 تواصل مع الدعم الفني</a
+        >
+      </div>
+    </div>
+
+    <script type="module">
+      import { auth, db } from "./js/firebase-config.js";
+      import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+      import {
+        doc,
+        getDoc,
+      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+      document
+        .getElementById("loginBtn")
+        .addEventListener("click", async () => {
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+
+          try {
+            const userCredential = await signInWithEmailAndPassword(
+              auth,
+              email,
+              password,
+            );
+            const userDoc = await getDoc(
+              doc(db, "students", userCredential.user.uid),
+            );
+
+            if (userDoc.exists()) {
+              const role = userDoc.data().role;
+              window.location.href =
+                role === "admin" ? "index.html" : "attendance.html";
+            } else {
+              alert(
+                "تم الدخول، ولكن لا توجد بيانات لهذا المستخدم في قاعدة البيانات!",
+              );
+            }
+          } catch (error) {
+            alert("خطأ في تسجيل الدخول: " + error.message);
+          }
+        });
+    </script>
+  </body>
+</html>

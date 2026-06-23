@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>بيانات الطالب - نادي وثبة الشبابي</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background-color: #f4f6f9;
+        margin: 0;
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* القائمة الجانبية */
+      .sidebar {
+        width: 260px;
+        background: #1a2f5e;
+        color: white;
+        padding: 20px;
+        flex-shrink: 0;
+      }
+      .sidebar h2 {
+        font-size: 18px;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .sidebar a {
+        display: block;
+        color: #d1d9e6;
+        padding: 15px;
+        text-decoration: none;
+        border-bottom: 1px solid #2c4d96;
+      }
+
+      .main-content {
+        flex: 1;
+        padding: 30px;
+      }
+      .card {
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        margin: auto;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 15px 0;
+        border-bottom: 1px solid #eee;
+      }
+      .label {
+        color: #64748b;
+        font-weight: bold;
+      }
+      .value {
+        color: #1a2f5e;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2>إدارة نادي وثبة الشبابي</h2>
+      <a href="index.html">لوحة التحكم</a>
+      <a href="attendance.html">تحضير الطلاب</a>
+      <a href="leaderboard.html">لوحات الصدارة</a>
+    </div>
+
+    <div class="main-content">
+      <div class="card" id="studentData">
+        <h1>بيانات الطالب التفصيلية</h1>
+        <div id="content">جاري تحميل البيانات...</div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { db } from "./js/firebase-config.js";
+      import {
+        doc,
+        getDoc,
+      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const studentId = urlParams.get("id");
+
+      async function loadStudentDetails() {
+        if (!studentId)
+          return (document.getElementById("content").innerText =
+            "خطأ: لم يتم العثور على الطالب.");
+
+        const docRef = await getDoc(doc(db, "students", studentId));
+        if (docRef.exists()) {
+          const s = docRef.data();
+          document.getElementById("content").innerHTML = `
+            <div class="info-row"><span class="label">الاسم:</span><span class="value">${s.name || "---"}</span></div>
+            <div class="info-row"><span class="label">رقم الهوية:</span><span class="value">${s.idNumber || "---"}</span></div>
+            <div class="info-row"><span class="label">جوال الطالب:</span><span class="value">${s.phone || "---"}</span></div>
+            <div class="info-row"><span class="label">بريد الطالب:</span><span class="value">${s.email || "---"}</span></div>
+            <div class="info-row"><span class="label">جوال ولي الأمر:</span><span class="value">${s.parentPhone || "---"}</span></div>
+            <div class="info-row"><span class="label">بريد ولي الأمر:</span><span class="value">${s.parentEmail || "---"}</span></div>
+            <div class="info-row"><span class="label">الصف الدراسي:</span><span class="value">${s.grade || "---"}</span></div>
+            <div class="info-row"><span class="label">النقاط الحالية:</span><span class="value">${s.points || 0}</span></div>
+          `;
+        } else {
+          document.getElementById("content").innerText =
+            "الطالب غير موجود في قاعدة البيانات.";
+        }
+      }
+      loadStudentDetails();
+    </script>
+  </body>
+</html>

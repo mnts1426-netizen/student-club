@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تفاصيل الطالب - نادي وثبة الشبابي</title>
+    <style>
+      /* (نفس تنسيقاتك السابقة مع إضافة تنسيق الجدول والنموذج) */
+      body {
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        background-color: #f4f6f9;
+        margin: 0;
+        display: flex;
+        min-height: 100vh;
+      }
+      .sidebar {
+        width: 260px;
+        background: #1a2f5e;
+        color: white;
+        padding: 20px;
+      }
+      .sidebar a {
+        display: block;
+        color: #d1d9e6;
+        padding: 15px;
+        text-decoration: none;
+        border-bottom: 1px solid #2c4d96;
+      }
+      .main-content {
+        flex: 1;
+        padding: 30px;
+      }
+      .card {
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        padding: 12px;
+        border: 1px solid #ddd;
+        text-align: center;
+      }
+      .admin-panel {
+        background: #eef2f7;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2>إدارة نادي وثبة الشبابي</h2>
+      <a href="index.html">لوحة التحكم</a>
+      <a href="attendance.html">تحضير الطلاب</a>
+      <a href="tasks.html">المهام والمشاريع</a>
+      <a href="student-details.html" style="background: #2c4d96; color: white"
+        >سجل المنح والخصم</a
+      >
+    </div>
+
+    <div class="main-content">
+      <div class="card admin-panel">
+        <h3>إدارة نقاط الطالب (للمشرفين)</h3>
+        <select id="reasonSelect" onchange="checkCustomReason()">
+          <option value="مشاركة فعالة,100">مشاركة فعالة (+100)</option>
+          <option value="تنظيم النادي,50">تنظيم النادي (+50)</option>
+          <option value="تأخر عن الموعد,-20">تأخر عن الموعد (-20)</option>
+          <option value="custom">سبب آخر (مخصص)...</option>
+        </select>
+        <div id="customFields" style="display: none">
+          <input type="text" id="customReason" placeholder="اكتب السبب هنا" />
+          <input type="number" id="customPoints" placeholder="عدد النقاط" />
+        </div>
+        <button
+          onclick="submitPoints()"
+          style="background: #764ba2; color: white; padding: 10px; width: 100%"
+        >
+          تنفيذ العملية
+        </button>
+      </div>
+
+      <div class="card">
+        <h3>سجل الحركة (المنح والخصم)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>النوع</th>
+              <th>القيمة</th>
+              <th>السبب</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script type="module">
+      import { db } from "./js/firebase-config.js";
+      import {
+        collection,
+        addDoc,
+        query,
+        where,
+        orderBy,
+        getDocs,
+        serverTimestamp,
+      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+      window.checkCustomReason = () => {
+        document.getElementById("customFields").style.display =
+          document.getElementById("reasonSelect").value === "custom"
+            ? "block"
+            : "none";
+      };
+
+      window.submitPoints = async () => {
+        let val = document.getElementById("reasonSelect").value;
+        let reason, amount;
+
+        if (val === "custom") {
+          reason = document.getElementById("customReason").value;
+          amount = parseInt(document.getElementById("customPoints").value);
+        } else {
+          [reason, amount] = val.split(",");
+          amount = parseInt(amount);
+        }
+
+        await addDoc(collection(db, "points_logs"), {
+          studentId: "CURRENT_STUDENT_ID", // سيتم جلبه ديناميكياً
+          reason: reason,
+          amount: amount,
+          type: amount >= 0 ? "منح" : "خصم",
+          timestamp: serverTimestamp(),
+        });
+        location.reload();
+      };
+
+      // دالة لجلب البيانات وعرضها ستوضع هنا...
+    </script>
+  </body>
+</html>
