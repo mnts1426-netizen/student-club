@@ -4,132 +4,54 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>لوحة تحكم المشرف - نادي وثبة الشبابي</title>
-    <style>
-      body {
-        font-family: "Segoe UI", Tahoma, sans-serif;
-        background-color: #f4f6f9;
-        margin: 0;
-        display: flex;
-        min-height: 100vh;
-      }
-
-      /* القائمة الجانبية */
-      .sidebar {
-        width: 260px;
-        background: #1a2f5e;
-        color: white;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-      }
-      .sidebar h2 {
-        font-size: 20px;
-        text-align: center;
-        margin-bottom: 30px;
-      }
-      .sidebar a {
-        display: block;
-        color: #d1d9e6;
-        padding: 15px;
-        text-decoration: none;
-        border-bottom: 1px solid #2c4d96;
-        transition: 0.3s;
-      }
-      .sidebar a:hover {
-        background: #2c4d96;
-        color: white;
-      }
-      /* تنسيق رابط الدعم الفني */
-      .support-link {
-        margin-top: 10px;
-        background: #2c4d96;
-        color: #ffcc00 !important;
-        text-align: center;
-        font-weight: bold;
-        border-radius: 8px;
-        margin-bottom: 20px;
-      }
-      .logout-btn {
-        margin-top: auto;
-        background: #cc0000;
-        color: white;
-        border: none;
-        padding: 12px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: bold;
-      }
-
-      /* المحتوى الرئيسي */
-      .main-content {
-        flex: 1;
-        padding: 30px;
-      }
-      .card {
-        background: white;
-        padding: 25px;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
-      }
-      h1 {
-        color: #1a2f5e;
-        margin-bottom: 20px;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-      }
-      th {
-        background-color: #f8f9fa;
-        padding: 15px;
-        text-align: center;
-        border-bottom: 2px solid #dee2e6;
-        color: #495057;
-      }
-      td {
-        padding: 15px;
-        border-bottom: 1px solid #eee;
-        text-align: center;
-      }
-
-      .btn {
-        padding: 8px 12px;
-        cursor: pointer;
-        border: none;
-        border-radius: 6px;
-        font-weight: bold;
-        margin: 2px;
-      }
-      .btn-add {
-        background-color: #25d366;
-        color: white;
-      }
-      .btn-deduct {
-        background-color: #cc0000;
-        color: white;
-      }
-    </style>
+    <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
     <div class="sidebar">
       <h2>إدارة نادي وثبة الشبابي</h2>
-      <a href="index.html">لوحة التحكم</a>
+      <a href="index.html" style="background: #2c4d96; color: white"
+        >لوحة التحكم</a
+      >
       <a href="attendance.html">تحضير الطلاب</a>
       <a href="tasks.html">المهام والمشاريع</a>
       <a href="leaderboard.html">لوحات الصدارة</a>
+      <a href="behavior-items.html">إدارة البنود</a>
+      <a href="reports.html">التقارير</a>
       <a href="ai-analyzer.html">تحليل الذكاء الاصطناعي</a>
 
       <a
         href="https://wa.me/9665XXXXXXXX?text=مرحباً، أحتاج مساعدة في نظام نادي وثبة"
         target="_blank"
-        class="support-link"
+        style="
+          margin-top: 10px;
+          background: #2c4d96;
+          color: #ffcc00;
+          text-align: center;
+          font-weight: bold;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          padding: 10px;
+          display: block;
+        "
         >💬 الدعم الفني</a
       >
 
-      <button class="logout-btn" id="logoutBtn">تسجيل الخروج</button>
+      <button
+        id="logoutBtn"
+        style="
+          margin-top: auto;
+          background: #dc3545;
+          color: white;
+          border: none;
+          padding: 12px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: bold;
+          width: 100%;
+        "
+      >
+        تسجيل الخروج
+      </button>
     </div>
 
     <div class="main-content">
@@ -142,7 +64,7 @@
               <th>اسم الطالب</th>
               <th>المجموعة</th>
               <th>النقاط</th>
-              <th>الإجراءات</th>
+              <th>الإجراءات السريعة</th>
             </tr>
           </thead>
           <tbody id="studentsTable"></tbody>
@@ -151,7 +73,8 @@
     </div>
 
     <script type="module">
-      import { db } from "./js/firebase-config.js";
+      // 1. استيراد خدمات قاعدة البيانات والمصادقة
+      import { db, auth } from "./js/firebase-config.js";
       import {
         collection,
         onSnapshot,
@@ -159,7 +82,24 @@
         updateDoc,
         increment,
       } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+      import {
+        onAuthStateChanged,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+      // ==========================================
+      // نظام الحماية (Auth Guard)
+      // ==========================================
+      onAuthStateChanged(auth, (user) => {
+        if (!user) {
+          // إذا لم يكن هناك مستخدم مسجل الدخول، اطرده لصفحة الدخول فوراً
+          window.location.replace("login.html");
+        }
+      });
+
+      // ==========================================
+      // جلب بيانات الطلاب وعرضها
+      // ==========================================
       const tableBody = document.getElementById("studentsTable");
 
       onSnapshot(collection(db, "students"), (snapshot) => {
@@ -167,9 +107,9 @@
         snapshot.forEach((docSnap) => {
           const s = docSnap.data();
           const row = `<tr>
-              <td>${s.name || "غير معروف"}</td>
+              <td><a href="student-details.html?id=${docSnap.id}" style="text-decoration:none; color:#1a2f5e; font-weight:bold;">${s.name || "غير معروف"}</a></td>
               <td>${s.group || "-"}</td>
-              <td><strong>${s.points || 0}</strong></td>
+              <td><strong>${s.points || s.totalPoints || 0}</strong></td>
               <td>
                   <button class="btn btn-add" onclick="updatePoints('${docSnap.id}', 5)">+5</button>
                   <button class="btn btn-deduct" onclick="updatePoints('${docSnap.id}', -5)">-5</button>
@@ -179,15 +119,27 @@
         });
       });
 
+      // دالة الإضافة والخصم السريع من الجدول
       window.updatePoints = async (id, amount) => {
         await updateDoc(doc(db, "students", id), {
-          points: increment(amount),
+          totalPoints: increment(amount), // تم توحيد اسم المتغير ليطابق صفحة تفاصيل الطالب
         });
       };
 
-      document.getElementById("logoutBtn").addEventListener("click", () => {
-        window.location.href = "login.html";
-      });
+      // ==========================================
+      // تسجيل الخروج الحقيقي (Sign Out)
+      // ==========================================
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          try {
+            await signOut(auth); // إغلاق الجلسة في سيرفرات فايربيس
+            window.location.replace("login.html"); // التوجيه لصفحة الدخول
+          } catch (error) {
+            console.error("حدث خطأ أثناء تسجيل الخروج:", error);
+            alert("تعذر تسجيل الخروج، حاول مرة أخرى.");
+          }
+        });
     </script>
   </body>
 </html>
