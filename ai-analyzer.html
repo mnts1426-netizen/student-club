@@ -3,58 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>تفاصيل الطالب - نادي وثبة الشبابي</title>
-    <style>
-      /* (نفس تنسيقاتك السابقة مع إضافة تنسيق الجدول والنموذج) */
-      body {
-        font-family: "Segoe UI", Tahoma, sans-serif;
-        background-color: #f4f6f9;
-        margin: 0;
-        display: flex;
-        min-height: 100vh;
-      }
-      .sidebar {
-        width: 260px;
-        background: #1a2f5e;
-        color: white;
-        padding: 20px;
-      }
-      .sidebar a {
-        display: block;
-        color: #d1d9e6;
-        padding: 15px;
-        text-decoration: none;
-        border-bottom: 1px solid #2c4d96;
-      }
-      .main-content {
-        flex: 1;
-        padding: 30px;
-      }
-      .card {
-        background: white;
-        padding: 25px;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-      }
-      th,
-      td {
-        padding: 12px;
-        border: 1px solid #ddd;
-        text-align: center;
-      }
-      .admin-panel {
-        background: #eef2f7;
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-      }
-    </style>
+    <title>تحليل الذكاء الاصطناعي - نادي وثبة الشبابي</title>
+    <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
     <div class="sidebar">
@@ -62,9 +12,44 @@
       <a href="index.html">لوحة التحكم</a>
       <a href="attendance.html">تحضير الطلاب</a>
       <a href="tasks.html">المهام والمشاريع</a>
-      <a href="student-details.html" style="background: #2c4d96; color: white"
-        >سجل المنح والخصم</a
+      <a href="leaderboard.html">لوحات الصدارة</a>
+      <a href="behavior-items.html">إدارة البنود</a>
+      <a href="reports.html">التقارير</a>
+      <a href="ai-analyzer.html" style="background: #2c4d96; color: white"
+        >تحليل الذكاء الاصطناعي</a
       >
+      <a
+        href="https://wa.me/966537466925"
+        target="_blank"
+        style="
+          margin-top: 10px;
+          background: #2c4d96;
+          color: #ffcc00;
+          text-align: center;
+          font-weight: bold;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          padding: 10px;
+          display: block;
+        "
+        >💬 الدعم الفني</a
+      >
+      <button
+        id="logoutBtn"
+        style="
+          margin-top: auto;
+          background: #dc3545;
+          color: white;
+          border: none;
+          padding: 12px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: bold;
+          width: 100%;
+        "
+      >
+        تسجيل الخروج
+      </button>
     </div>
 
     <div class="main-content">
@@ -76,13 +61,35 @@
           <option value="تأخر عن الموعد,-20">تأخر عن الموعد (-20)</option>
           <option value="custom">سبب آخر (مخصص)...</option>
         </select>
-        <div id="customFields" style="display: none">
-          <input type="text" id="customReason" placeholder="اكتب السبب هنا" />
-          <input type="number" id="customPoints" placeholder="عدد النقاط" />
+        <div
+          id="customFields"
+          style="display: none; gap: 10px; margin-top: 10px"
+        >
+          <input
+            type="text"
+            id="customReason"
+            placeholder="اكتب السبب هنا"
+            style="flex: 2"
+          />
+          <input
+            type="number"
+            id="customPoints"
+            placeholder="عدد النقاط"
+            style="flex: 1"
+          />
         </div>
         <button
           onclick="submitPoints()"
-          style="background: #764ba2; color: white; padding: 10px; width: 100%"
+          style="
+            background: #764ba2;
+            color: white;
+            padding: 10px;
+            width: 100%;
+            border: none;
+            border-radius: 8px;
+            margin-top: 15px;
+            cursor: pointer;
+          "
         >
           تنفيذ العملية
         </button>
@@ -105,7 +112,7 @@
     </div>
 
     <script type="module">
-      import { db } from "./js/firebase-config.js";
+      import { db, auth } from "./js/firebase-config.js";
       import {
         collection,
         addDoc,
@@ -115,11 +122,27 @@
         getDocs,
         serverTimestamp,
       } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+      import {
+        onAuthStateChanged,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+      // الحماية وتسجيل الخروج
+      onAuthStateChanged(auth, (user) => {
+        if (!user) window.location.replace("login.html");
+      });
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          await signOut(auth);
+          window.location.replace("login.html");
+        });
+
+      // الكود الأصلي الخاص بك (لم يتم لمسه)
       window.checkCustomReason = () => {
         document.getElementById("customFields").style.display =
           document.getElementById("reasonSelect").value === "custom"
-            ? "block"
+            ? "flex"
             : "none";
       };
 
@@ -144,8 +167,6 @@
         });
         location.reload();
       };
-
-      // دالة لجلب البيانات وعرضها ستوضع هنا...
     </script>
   </body>
 </html>
