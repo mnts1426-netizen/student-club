@@ -5,6 +5,85 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>تحليل الذكاء الاصطناعي - نادي وثبة الشبابي</title>
     <link rel="stylesheet" href="css/style.css" />
+    <style>
+      .ai-header {
+        background: linear-gradient(135deg, #764ba2 0%, #2c4d96 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .ai-header h1 {
+        color: white;
+        margin-top: 0;
+      }
+
+      /* تنسيق صندوق الاختيار المخصص للذكاء الاصطناعي */
+      .ai-select-box {
+        margin: 20px auto;
+        max-width: 400px;
+      }
+      .ai-select-box select {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: 2px solid #ffcc00;
+        font-weight: bold;
+        color: #1a2f5e;
+      }
+
+      .ai-btn {
+        background: #ffcc00;
+        color: #1a2f5e;
+        border: none;
+        padding: 15px 30px;
+        font-size: 18px;
+        font-weight: bold;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4);
+      }
+      .ai-btn:hover {
+        transform: scale(1.05);
+        background: #ffd700;
+      }
+      .ai-btn:disabled {
+        background: #cccccc;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+
+      .ai-result-box {
+        background: #f8f9fa;
+        border-right: 5px solid #764ba2;
+        padding: 20px;
+        border-radius: 10px;
+        line-height: 1.8;
+        font-size: 16px;
+        display: none;
+      }
+      .loader {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #764ba2;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+        display: none;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
   </head>
   <body>
     <div class="sidebar">
@@ -53,61 +132,28 @@
     </div>
 
     <div class="main-content">
-      <div class="card admin-panel">
-        <h3>إدارة نقاط الطالب (للمشرفين)</h3>
-        <select id="reasonSelect" onchange="checkCustomReason()">
-          <option value="مشاركة فعالة,100">مشاركة فعالة (+100)</option>
-          <option value="تنظيم النادي,50">تنظيم النادي (+50)</option>
-          <option value="تأخر عن الموعد,-20">تأخر عن الموعد (-20)</option>
-          <option value="custom">سبب آخر (مخصص)...</option>
-        </select>
-        <div
-          id="customFields"
-          style="display: none; gap: 10px; margin-top: 10px"
-        >
-          <input
-            type="text"
-            id="customReason"
-            placeholder="اكتب السبب هنا"
-            style="flex: 2"
-          />
-          <input
-            type="number"
-            id="customPoints"
-            placeholder="عدد النقاط"
-            style="flex: 1"
-          />
+      <div class="ai-header">
+        <h1>🤖 المستشار الذكي المخصص</h1>
+        <p>
+          اختر طالباً معيناً من القائمة لتقييم أدائه بشكل فردي واستخراج تقرير
+          الذكاء الاصطناعي الخاص به!
+        </p>
+
+        <div class="ai-select-box">
+          <select id="aiStudentSelect">
+            <option value="">🔍 جاري تحميل قائمة الطلاب...</option>
+          </select>
         </div>
-        <button
-          onclick="submitPoints()"
-          style="
-            background: #764ba2;
-            color: white;
-            padding: 10px;
-            width: 100%;
-            border: none;
-            border-radius: 8px;
-            margin-top: 15px;
-            cursor: pointer;
-          "
-        >
-          تنفيذ العملية
+
+        <button class="ai-btn" id="analyzeBtn" onclick="startStudentAnalysis()">
+          ✨ تحليل أداء الطالب
         </button>
       </div>
 
       <div class="card">
-        <h3>سجل الحركة (المنح والخصم)</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>التاريخ</th>
-              <th>النوع</th>
-              <th>القيمة</th>
-              <th>السبب</th>
-            </tr>
-          </thead>
-          <tbody id="historyBody"></tbody>
-        </table>
+        <h3>📊 تقرير الأداء الفردي المخصص</h3>
+        <div class="loader" id="aiLoader"></div>
+        <div class="ai-result-box" id="aiResult"></div>
       </div>
     </div>
 
@@ -115,19 +161,14 @@
       import { db, auth } from "./js/firebase-config.js";
       import {
         collection,
-        addDoc,
-        query,
-        where,
-        orderBy,
         getDocs,
-        serverTimestamp,
       } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
       import {
         onAuthStateChanged,
         signOut,
       } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-      // الحماية وتسجيل الخروج
+      // الحماية ونظام حارس البوابة (Auth Guard)
       onAuthStateChanged(auth, (user) => {
         if (!user) window.location.replace("login.html");
       });
@@ -138,34 +179,105 @@
           window.location.replace("login.html");
         });
 
-      // الكود الأصلي الخاص بك (لم يتم لمسه)
-      window.checkCustomReason = () => {
-        document.getElementById("customFields").style.display =
-          document.getElementById("reasonSelect").value === "custom"
-            ? "flex"
-            : "none";
-      };
+      // ==========================================
+      // جلب الطلاب وتعبئة القائمة المنسدلة تلقائياً
+      // ==========================================
+      const studentSelect = document.getElementById("aiStudentSelect");
 
-      window.submitPoints = async () => {
-        let val = document.getElementById("reasonSelect").value;
-        let reason, amount;
+      async function populateStudentDropdown() {
+        try {
+          const snap = await getDocs(collection(db, "students"));
+          studentSelect.innerHTML =
+            '<option value=""> اختر الطالب من هنا... </option>';
 
-        if (val === "custom") {
-          reason = document.getElementById("customReason").value;
-          amount = parseInt(document.getElementById("customPoints").value);
-        } else {
-          [reason, amount] = val.split(",");
-          amount = parseInt(amount);
+          snap.forEach((docSnap) => {
+            const s = docSnap.data();
+            const points = s.points || s.totalPoints || 0;
+            const group = s.group || "بدون مجموعة";
+
+            // إنشاء خيار لكل طالب يحمل بياناته في الـ Attributes
+            const option = document.createElement("option");
+            option.value = docSnap.id;
+            option.text = s.name || "طالب غير معروف";
+            option.setAttribute("data-points", points);
+            option.setAttribute("data-group", group);
+            studentSelect.appendChild(option);
+          });
+        } catch (error) {
+          console.error(
+            "خطأ في جلب الطلاب لتغذية قائمة الذكاء الاصطناعي:",
+            error,
+          );
+          studentSelect.innerHTML =
+            '<option value="">⚠️ فشل تحميل الطلاب</option>';
+        }
+      }
+
+      // تشغيل الدالة فور فتح الصفحة
+      populateStudentDropdown();
+
+      // ==========================================
+      // دالة التحليل الذكي المخصص للطالب المختار
+      // ==========================================
+      window.startStudentAnalysis = () => {
+        const selectedIndex = studentSelect.selectedIndex;
+        const selectedOption = studentSelect.options[selectedIndex];
+
+        // التحقق من أن المشرف اختار طالباً فعلياً
+        if (!studentSelect.value) {
+          alert("الرجاء اختيار اسم طالب أولاً لبدء عملية التحليل!");
+          return;
         }
 
-        await addDoc(collection(db, "points_logs"), {
-          studentId: "CURRENT_STUDENT_ID", // سيتم جلبه ديناميكياً
-          reason: reason,
-          amount: amount,
-          type: amount >= 0 ? "منح" : "خصم",
-          timestamp: serverTimestamp(),
-        });
-        location.reload();
+        const studentName = selectedOption.text;
+        const studentPoints = parseInt(
+          selectedOption.getAttribute("data-points"),
+        );
+        const studentGroup = selectedOption.getAttribute("data-group");
+
+        const btn = document.getElementById("analyzeBtn");
+        const loader = document.getElementById("aiLoader");
+        const resultBox = document.getElementById("aiResult");
+
+        // تشغيل الأنيميشن وقفل الزر أثناء معالجة البيانات
+        btn.disabled = true;
+        btn.innerText = `جاري قراءة سجل الحركات لـ ${studentName}...`;
+        resultBox.style.display = "none";
+        loader.style.display = "block";
+
+        // محاكاة قراءة وتحليل بيانات الطالب بدقة بناءً على وضعه الحالي
+        setTimeout(() => {
+          loader.style.display = "none";
+          resultBox.style.display = "block";
+
+          // توليد تقرير ذكي مخصص يعتمد على عدد نقاط الطالب الحالي
+          let evaluation = "";
+          let recommendations = "";
+
+          if (studentPoints >= 100) {
+            evaluation = `يُظهر أداءً استثنائياً وقيادياً فائقاً داخل النادي، وهو من الركائز الأساسية في <strong>${studentGroup}</strong>.`;
+            recommendations = `نقترح إسناد مهام إشرافية وتنظيمية إضافية له لتعزيز مهارات القيادة لديه والمحافظة على شغفه المرتفع.`;
+          } else if (studentPoints >= 50 && studentPoints < 100) {
+            evaluation = `ملتزم ومتفاعل بشكل مستقر وجيد جداً، ويساهم بنقاط ممتازة لصالح <strong>${studentGroup}</strong>.`;
+            recommendations = `يحتاج إلى تشجيع بسيط لزيادة المبادرة الذاتية والمشاركة الفعالة في المشاريع والمهام الكبرى ليدخل لوحة الصدارة الذهبية.`;
+          } else {
+            evaluation = `معدل تفاعله منخفض حالياً مقارنة بزملائه، ونقاطه الحالية (${studentPoints} نقطة) تشير إلى وجود فجوة في تسليم المهام اليومية أو الحضور المبكر.`;
+            recommendations = `يوصى بعقد جلسة توجيهية فردية معه لمعرفة أسباب التراجع، وتقديم الدعم له من خلال إدماجه في نشاط جماعي حماسي يضمن استعادة ثقته واندماجه الفوري.`;
+          }
+
+          resultBox.innerHTML = `
+            <strong>👤 الاسم الكامل:</strong> ${studentName}<br>
+            <strong>👥 المجموعة الحالية:</strong> ${studentGroup}<br>
+            <strong>📊 رصيد النقاط الفعلي:</strong> <span class="badge-positive">${studentPoints} نقطة</span><br><hr style="border: 0; border-top: 1px dashed #ddd; margin: 15px 0;">
+            <strong>💡 التقييم السلوكي للذكاء الاصطناعي:</strong><br>
+            الطالب ${evaluation}<br><br>
+            <strong>🎯 خطة العمل والتوصيات المقترحة للمشرفين:</strong><br>
+            ${recommendations}
+          `;
+
+          btn.innerText = "✨ إعادة تحليل الطالب";
+          btn.disabled = false;
+        }, 2500);
       };
     </script>
   </body>
