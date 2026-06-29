@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>التقارير - نادي وثبة الشبابي</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+      .report-controls {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 15px;
+        align-items: flex-end;
+        border: 1px solid #eee;
+      }
+      .report-controls .input-box {
+        flex: 1;
+      }
+      .btn-generate {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        height: 42px;
+      }
+      .btn-generate:hover {
+        background: #218838;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2>إدارة نادي وثبة الشبابي</h2>
+      <a href="index.html">لوحة التحكم</a>
+      <a href="attendance.html">تحضير الطلاب</a>
+      <a href="tasks.html">المهام والمشاريع</a>
+      <a href="leaderboard.html">لوحات الصدارة</a>
+      <a href="behavior-items.html">إدارة البنود</a>
+      <a href="reports.html" style="background: #2c4d96; color: white"
+        >التقارير</a
+      >
+      <a href="ai-analyzer.html">تحليل الذكاء الاصطناعي</a>
+      <a
+        href="https://wa.me/966537466925"
+        target="_blank"
+        style="
+          margin-top: 10px;
+          background: #2c4d96;
+          color: #ffcc00;
+          text-align: center;
+          font-weight: bold;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          padding: 10px;
+          display: block;
+        "
+        >💬 الدعم الفني</a
+      >
+      <button
+        id="logoutBtn"
+        style="
+          margin-top: auto;
+          background: #dc3545;
+          color: white;
+          border: none;
+          padding: 12px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: bold;
+          width: 100%;
+        "
+      >
+        تسجيل الخروج
+      </button>
+    </div>
+
+    <div class="main-content">
+      <div class="card admin-panel">
+        <h1>📊 لوحة التقارير الشاملة</h1>
+
+        <div class="report-controls">
+          <div class="input-box">
+            <label>اختر نوع التقرير المطلوب:</label>
+            <select id="reportType">
+              <option value="studentsPoints">تقرير نقاط الطلاب الشامل</option>
+              <option value="pointsLogs">سجل حركات (الخصم والمنح)</option>
+            </select>
+          </div>
+          <button class="btn-generate" onclick="generateReport()">
+            استخراج التقرير 🚀
+          </button>
+          <button
+            class="btn print-btn"
+            onclick="window.print()"
+            style="flex: 0; padding: 10px 20px; height: 42px"
+          >
+            🖨️ طباعة
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 id="reportTitle">نتائج التقرير</h3>
+        <table id="reportTable">
+          <thead id="reportHead"></thead>
+          <tbody id="reportBody">
+            <tr>
+              <td colspan="4">
+                يرجى الضغط على "استخراج التقرير" لعرض البيانات.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script type="module">
+      import { db, auth } from "./js/firebase-config.js";
+      import {
+        collection,
+        getDocs,
+        query,
+        orderBy,
+        limit,
+      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+      import {
+        onAuthStateChanged,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+      // الحماية وتسجيل الخروج
+      onAuthStateChanged(auth, (user) => {
+        if (!user) window.location.replace("login.html");
+      });
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          await signOut(auth);
+          window.location.replace("login.html");
+        });
+
+      // دالة توليد التقارير
+      window.generateReport = async () => {
+        const reportType = document.getElementById("reportType").value;
+        const reportTitle = document.getElementById("reportTitle");
+        const reportHead = document.getElementById("reportHead");
+        const reportBody = document.getElementById("reportBody");
+
+        reportBody.innerHTML =
+          '<tr><td colspan="4">جاري جلب البيانات... ⏳</td></tr>';
+
+        try {
+          if (reportType === "studentsPoints") {
+            reportTitle.innerText = "تقرير نقاط الطلاب الشامل";
+            reportHead.innerHTML = `<tr><th>الرقم</th><th>اسم الطالب</th><th>المجموعة</th><th>النقاط</th></tr>`;
+
+            // جلب الطلاب وترتيبهم حسب النقاط
+            const q = query(
+              collection(db, "students"),
+              orderBy("points", "desc"),
+            );
+            const snap = await getDocs(q);
+
+            reportBody.innerHTML = "";
+            let counter = 1;
+            snap.forEach((docSnap) => {
+              const s = docSnap.data();
+              reportBody.innerHTML += `<tr>
+                <td>${counter++}</td>
+                <td><strong>${s.name || "---"}</strong></td>
+                <td>${s.group || "---"}</td>
+                <td><span class="badge-positive">${s.points || 0}</span></td>
+              </tr>`;
+            });
+          } else if (reportType === "pointsLogs") {
+            reportTitle.innerText = "سجل حركات (الخصم والمنح)";
+            reportHead.innerHTML = `<tr><th>التاريخ</th><th>سبب العملية</th><th>النوع</th><th>النقاط</th></tr>`;
+
+            // جلب أحدث 50 حركة سجل من قاعدة البيانات
+            const q = query(
+              collection(db, "points_logs"),
+              orderBy("timestamp", "desc"),
+              limit(50),
+            );
+            const snap = await getDocs(q);
+
+            reportBody.innerHTML = "";
+            if (snap.empty) {
+              reportBody.innerHTML =
+                '<tr><td colspan="4">لا توجد حركات مسجلة حتى الآن.</td></tr>';
+              return;
+            }
+
+            snap.forEach((docSnap) => {
+              const log = docSnap.data();
+              const dateObj = log.timestamp
+                ? log.timestamp.toDate()
+                : new Date();
+              const dateStr =
+                dateObj.toLocaleDateString("ar-SA") +
+                " - " +
+                dateObj.toLocaleTimeString("ar-SA");
+              const badge =
+                log.type === "منح" ? "badge-positive" : "badge-negative";
+
+              reportBody.innerHTML += `<tr>
+                <td><small>${dateStr}</small></td>
+                <td>${log.reason || "---"}</td>
+                <td>${log.type || "---"}</td>
+                <td><span class="${badge}">${log.amount > 0 ? "+" + log.amount : log.amount}</span></td>
+              </tr>`;
+            });
+          }
+        } catch (error) {
+          console.error("خطأ في جلب التقرير:", error);
+          reportBody.innerHTML =
+            '<tr><td colspan="4" style="color: red;">حدث خطأ أثناء جلب البيانات. تأكد من إعدادات قاعدة البيانات.</td></tr>';
+        }
+      };
+    </script>
+  </body>
+</html>
